@@ -3,17 +3,17 @@ import ao_arch as ar
 
 description = "Basic MNIST"
 # 1 channel, 28x28=784 neurons, each corresponding to a
-# point in MNIST (downsampled to 28x28 bitmap)
-arch_i = [28 * 28]
+# point in MNIST (downsampled to 28x28x8 bitmap)
+arch_i = [8 for x in range (28*28)]
 # 1 channel or dimension of output, 4 neurons, corresponding to 2^4=16 binary to code for 0-9 int, the MNIST labels
 arch_z = [4]
 # No control neurons used here
 arch_c = []
 # specifies how the neurons are connected;
 # in this case, all neurons are connected randomly to a set number of others
-connector_function = "rand_conn"
+connector_function = "nearest_neighbour_conn"
 # used 360, 180 before to good success
-connector_parameters = [392, 261, 784, 4]
+connector_parameters = [8, 4, 28, 28, False, False]
 arch = ar.Arch(
     arch_i, arch_z, arch_c, connector_function, connector_parameters, description
 )

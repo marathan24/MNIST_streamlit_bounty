@@ -55,7 +55,7 @@ def run_agent(user_STEPS, INPUT, LABEL=[]):
     # z = st.session_state.agent.arch.Z__flat
     z_index = st.session_state.agent.arch.Z__flat
     st.session_state.agent_qresponse = np.reshape(
-        st.session_state.agent.story[s - 1, q_index], [28, 28]
+        st.session_state.agent.story[s - 1, q_index], [28, 28, 8]
     )
     # st.session_state.agent_zresponse = st.session_state.agent.story[s, z]
     z = st.session_state.agent.story[s - 1, z_index]
@@ -92,7 +92,7 @@ def run_trials(is_training, num_trials, user_STEPS):
     num_trials = len(selected_in)
 
     if is_training:
-        INPUT = data.down_sample(selected_in).reshape(num_trials, 784)
+        INPUT = data.down_sample(selected_in).reshape(num_trials, 6272)
         st.session_state.agent.next_state_batch(INPUT, selected_z, unsequenced=True)
         print("Training complete; neurons updated.")
         return
@@ -114,7 +114,7 @@ def run_trials(is_training, num_trials, user_STEPS):
             interrupt_modal_dialog()
             break
 
-        INPUT = data.down_sample(selected_in[t, :, :]).reshape(784)
+        INPUT = data.down_sample(selected_in[t, :, :]).reshape(6272)
         LABEL = selected_z[t]
         if is_training:
             user_STEPS = 1
@@ -138,7 +138,7 @@ def run_trials(is_training, num_trials, user_STEPS):
 
 
 def run_canvas():
-    input = data.down_sample(st.session_state.canvas_image).reshape(784)
+    input = data.down_sample(st.session_state.canvas_image).reshape(6272)
     label = []
     user_steps = 10
     if st.session_state.train_canvas:
@@ -152,23 +152,24 @@ def run_canvas():
 
 
 # Used to construct images of agent state
-def arr_to_img(img_array, enlarge_factor=15):
-    # Convert the binary array to a numpy array
-    img_array = np.array(img_array, dtype=np.uint8)
+def arr_to_img(binary_array, enlarge_factor=15):
+    print("Shape of Binary array is ", binary_array.shape)
+    if binary_array.shape != (28, 28, 8):
+        return binary_array
+    
+    # Convert binary values to grayscale intensities
+    powers_of_two = 2 ** np.arange(8)[::-1]
+    grayscale_array = np.sum(binary_array * powers_of_two, axis=2)
 
-    # Scale the values to 0 or 255 (black or white)
-    img_array = img_array * 255
-
-    enlarged_array = np.repeat(img_array, enlarge_factor, axis=0)
-    try:
-        enlarged_array = np.repeat(enlarged_array, enlarge_factor, axis=1)
-    except:
-        enlarged_array = np.tile(enlarged_array, [enlarge_factor, 1])
-        pass
-
-    # Create an image from the array
+    print(grayscale_array.shape)
+    
+    # Normalize to 0-255 range (not necessary if input is already 0-255)
+    grayscale_array = grayscale_array.astype(np.uint8)
+    
+    enlarged_array = np.repeat(np.repeat(grayscale_array, enlarge_factor, axis=0), enlarge_factor, axis=1)
+    
     img = Image.fromarray(enlarged_array, mode="L")  # 'L' mode is for grayscale
-
+    
     return img
 
 streamlit_analytics2.start_tracking()
@@ -448,7 +449,8 @@ with state_col:
         i_arr = st.session_state.agent.story[
             sel_state, st.session_state.agent.arch.I__flat
         ]
-        i_arr = np.reshape(i_arr, [28, 28])
+        print("Shape of I_COL is", i_arr.shape)
+        i_arr = np.reshape(i_arr, (28, 28, 8))
         i_img = arr_to_img(i_arr)
         st.image(i_img)
 
@@ -457,7 +459,8 @@ with state_col:
         q_arr = st.session_state.agent.story[
             sel_state, st.session_state.agent.arch.Q__flat
         ]
-        q_arr = np.reshape(q_arr, [28, 28])
+        print("Shape of Q_col is" , q_arr.shape)
+        q_arr = np.reshape(q_arr, (28, 28, 8))
         q_img = arr_to_img(q_arr)
         st.image(q_img)
 
@@ -466,10 +469,10 @@ with state_col:
         z_arr = st.session_state.agent.story[
             sel_state, st.session_state.agent.arch.Z__flat
         ]
+        print("Shape of Z_col is" , z_arr.shape)
         z_int = z_arr.dot(2 ** np.arange(z_arr.size)[::-1])
         z_img = arr_to_img(z_arr)
         st.write("Result in binary:")
-        st.image(z_img)
         st.write("  " + str(z_arr))
         st.write("Result as an integer label: " + str(z_int))
 

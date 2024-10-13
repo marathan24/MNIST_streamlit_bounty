@@ -51,11 +51,31 @@ def down_sample_item(x, down=200):
     f = np.vectorize(lambda x, down: 1 if x >= down else 0)
     return f(x, down)
 
-def down_sample(image, down=200):
-    down_image = np.zeros(image.shape)
-    down_image[image < down] = 0
-    down_image[image >= down] = 1
-    return down_image
+def down_sample(image):
+    print(image.shape)
+    print("----------------------------------------")
+    print(image[0])
+    image_uint8 = image.astype(np.uint8)
+    if image_uint8.ndim != 3:
+        image_uint8 = image.astype(np.uint8)
+
+        image_expanded = image_uint8[:, :, np.newaxis]
+        print("Image shape after adding new axis:", image_expanded.shape)
+
+        bits_image = np.unpackbits(image_expanded, axis=2)
+        print("Bit-unpacked image shape:", bits_image.shape)
+
+        return bits_image
+    
+    image_expanded = image_uint8[:, :, :, np.newaxis]
+    
+    # Unpack bits along the last axis
+    bits_image = np.unpackbits(image_expanded, axis=3)
+    print(bits_image[0])
+    print("----------------------------------------")
+    print(bits_image.shape)
+    return bits_image
+
 
 
 def get_font_data(filename):
